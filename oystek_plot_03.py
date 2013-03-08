@@ -128,7 +128,7 @@ def plot_oyster_images():
 ##      print ln
 
   # only plot the first few oysters
-  if (num_oysters>5):
+  if (num_oysters>7):
     return
 
   # convert to scatter form  
@@ -153,10 +153,10 @@ def plot_oyster_images():
     annotate_text = ('dots='+str(int(oyster_dim[i][0]))+
                      ', Ymin='+str(int(oyster_dim[i][2]))+', Ymax='+str(int(oyster_dim[i][3]))+
                      ', Xmin='+str(int(oyster_dim[i][4]-8))+', Xmax='+str(int(oyster_dim[i][5]))+
-                     '\nXmin_o_Ymin='+str(int(oyster_dim[i][6]-8))+', Xmax_o_Ymin='+str(int(oyster_dim[i][7]-3))+
+                     ',\nXmin_o_Ymin='+str(int(oyster_dim[i][6]-8))+', Xmax_o_Ymin='+str(int(oyster_dim[i][7]-3))+
                      ', Xmin_o_Ymax='+str(int(oyster_dim[i][8]-8))+', Xmax_o_Ymax='+str(int(oyster_dim[i][9]-3))+
-                     '\nYmax_o_Xmin='+str(int(oyster_dim[i][11]))+', Ymax_o_Xmax='+str(int(oyster_dim[i][13]))+
-                     '\ndelay='+str(int(oyster_velocity))+' Grade='+str(int(oyster_grade))+' Length='+str(int(oyster_length))
+                     ',\nYmax_o_Xmin='+str(int(oyster_dim[i][11]))+', Ymax_o_Xmax='+str(int(oyster_dim[i][13]))+
+                     ',\ndelay='+str(int(oyster_velocity))+', Grade='+str(int(oyster_grade))+', Length='+str(int(oyster_length))
                     )
                                                                   
     pylab.annotate(annotate_text, [5,-250],[5,-250])
@@ -171,14 +171,13 @@ def plot_oyster_images():
     pylab.plot([oyster_dim[i][4]-8,oyster_dim[i][5]-3],[-oyster_dim[i][11],-oyster_dim[i][13]], color='r')
     pylab.plot([(oyster_dim[i][6]+oyster_dim[i][7]-11)/2,(oyster_dim[i][8]+oyster_dim[i][9]-11)/2],[-oyster_dim[i][2],-oyster_dim[i][3]], color='r')
 
-    pylab.scatter([oyster_dim[i][6]-8,oyster_dim[i][7]-3,oyster_dim[i][8]-8,oyster_dim[i][9]-3], [-oyster_dim[i][2],-oyster_dim[i][2],-oyster_dim[i][3],-oyster_dim[i][3]], color='black')
+    pylab.scatter([oyster_dim[i][6]-8,oyster_dim[i][7]-3,oyster_dim[i][8]-8,oyster_dim[i][9]-3,oyster_dim[i][4]-8,oyster_dim[i][5]-3], [-oyster_dim[i][2],-oyster_dim[i][2],-oyster_dim[i][3],-oyster_dim[i][3],-oyster_dim[i][11],-oyster_dim[i][13]], color='k')
     
     pylab.hold(False)
     #pylab.savefig(image_title+'.png')
     pylab.show()
 
-    # plot all images in one window
-    
+  # plot all images in one window    
   return
 
 
