@@ -1,5 +1,3 @@
-from matplotlib import *
-import numpy
 import pylab
 import re
 
@@ -12,7 +10,8 @@ n_cols = 7*16
 
 # GLOBAL VARS
 oyster_images = [[] for _ in range(n_images)]
-oyster_dim = [numpy.zeros(n_registers) for _ in range(n_images)]
+#oyster_dim = [numpy.zeros(n_registers) for _ in range(n_images)]
+oyster_dim = [([0] * n_registers) for _ in range(n_images)]
 oyster_velocity = 0
 oyster_length = 0
 oyster_grade = 0
@@ -20,6 +19,9 @@ fin = 0
 fout = 0
 current_line = ''
 num_oysters = 0
+scatter_x = [[] for _ in range(n_images)]
+scatter_y = [[] for _ in range(n_images)]
+
 
 def fetch_image(i):
   global oyster_image
@@ -35,7 +37,7 @@ def fetch_image(i):
       oyster_images[i] = oyster_images[i]+[aline]
     else:
       break
-  print 'image #', i, ', ', len(oyster_images[i]), ' lines'
+  #print 'image #', i, ', ', len(oyster_images[i]), ' lines'
 ##  for el in oyster_images[i]:
 ##    print el  
   return True
@@ -62,7 +64,7 @@ def fetch_dimension(i):
       current_line = aline
       #print 'ohoh...', current_line
       break
-  print 'Registers set #',i
+  print 'Registers set #',i+1
   print oyster_dim[i]
   return True
 
@@ -119,32 +121,34 @@ def fetch_1_oyster():
   return True
 
 
-def plot_oyster_images():
-
-##  for i in range(n_images):
-##    print 'image #', i
-##    for ln in oyster_images[i]:
-##      ln = ln[0:len(ln)-1] # remove '\n' at the end
-##      print ln
-
-  # only plot the first few oysters
-  if (num_oysters>7):
-    return
-
+def prepare_scatter_images():
+  global scatter_x
+  global scatter_y
+  scatter_x = [[] for _ in range(n_images)]
+  scatter_y = [[] for _ in range(n_images)]
   # convert to scatter form  
-  for i in range(len(oyster_images)):
+  for i in range(n_images):
+    dots = 0
     # for each image
-    scatter_x = []
-    scatter_y = []
     for j in range(len(oyster_images[i])):
     # for each line
       for k in range(len(oyster_images[i][j])-1):
       # for each dot on the line
         if (oyster_images[i][j][k] == '#'):
-          scatter_x.append(k)
-          scatter_y.append(-j)
-  
-    pylab.scatter(scatter_x, scatter_y, color='lightgrey')
+          scatter_x[i].append(k)
+          scatter_y[i].append(-j)
+          dots += 1
+    print 'image #', i+1, 'dots count= ', dots
+  return
+
+
+def plot_oyster_images():
+  # only plot the first few oysters
+  if (num_oysters>7):
+    return
+
+  for i in range(len(oyster_images)):
+    pylab.scatter(scatter_x[i], scatter_y[i], color='lightgrey')
     pylab.hold(True)
     pylab.xlabel('mm')
     pylab.ylabel('# lines')
@@ -152,17 +156,17 @@ def plot_oyster_images():
     pylab.title(image_title)
     annotate_text = ('dots='+str(int(oyster_dim[i][0]))+
                      ', Ymin='+str(int(oyster_dim[i][2]))+', Ymax='+str(int(oyster_dim[i][3]))+
-                     ', Xmin='+str(int(oyster_dim[i][4]-8))+', Xmax='+str(int(oyster_dim[i][5]))+
+                     ', Xmin='+str(int(oyster_dim[i][4]-8))+', Xmax='+str(int(oyster_dim[i][5]-3))+
                      ',\nXmin_o_Ymin='+str(int(oyster_dim[i][6]-8))+', Xmax_o_Ymin='+str(int(oyster_dim[i][7]-3))+
                      ', Xmin_o_Ymax='+str(int(oyster_dim[i][8]-8))+', Xmax_o_Ymax='+str(int(oyster_dim[i][9]-3))+
                      ',\nYmax_o_Xmin='+str(int(oyster_dim[i][11]))+', Ymax_o_Xmax='+str(int(oyster_dim[i][13]))+
                      ',\ndelay='+str(int(oyster_velocity))+', Grade='+str(int(oyster_grade))+', Length='+str(int(oyster_length))
                     )
-                                                                  
     pylab.annotate(annotate_text, [5,-250],[5,-250])
     pylab.grid(True)
-    pylab.ylim([-255,0])
-    pylab.xlim([0,111])
+    pylab.xlim([0,111])  #pylab.xlim([ oyster_dim[i][4]-8-5, oyster_dim[i][5]-3+5])
+    pylab.ylim([-255,0]) #pylab.ylim([-oyster_dim[i][2]+5,  -oyster_dim[i][3]-5])
+    
     pylab.plot([0,111],[-oyster_dim[i][2],-oyster_dim[i][2]], color='b')
     pylab.plot([0,111],[-oyster_dim[i][3],-oyster_dim[i][3]], color='b')
     pylab.plot([oyster_dim[i][4]-8,oyster_dim[i][4]-8],[-255,0], color='g')
@@ -176,10 +180,46 @@ def plot_oyster_images():
     pylab.hold(False)
     #pylab.savefig(image_title+'.png')
     pylab.show()
-
-  # plot all images in one window    
   return
 
+
+def plot_oyster_images_AiO():
+  # only plot the first few oysters
+  if (num_oysters>17):
+    return
+
+  f, axarr = pylab.subplots(2, 2)
+  
+  for i in range(n_images):
+    axarr[i/2,i%2].scatter(scatter_x[i], scatter_y[i], color='lightgrey')
+    axarr[i/2,i%2].hold(True)
+    if (i==1 or i==3):
+      pylab.setp( axarr[i/2,i%2].axes.get_yticklabels(), visible=False)
+    if (i==0 or i==1):
+      pylab.setp( axarr[i/2,i%2].axes.get_xticklabels(), visible=False)
+    if (i==0):
+      axarr[i/2,i%2].set_title('oyster #'+str(num_oysters))
+      
+    axarr[i/2,i%2].grid(True)
+    axarr[i/2,i%2].set_ylim([-255,0])
+    axarr[i/2,i%2].set_xlim([0,111])
+    axarr[i/2,i%2].plot([0,111],[-oyster_dim[i][2],-oyster_dim[i][2]], color='b')
+    axarr[i/2,i%2].plot([0,111],[-oyster_dim[i][3],-oyster_dim[i][3]], color='b')
+    axarr[i/2,i%2].plot([oyster_dim[i][4]-8,oyster_dim[i][4]-8],[-255,0], color='g')
+    axarr[i/2,i%2].plot([oyster_dim[i][5]-3,oyster_dim[i][5]-3],[-255,0], color='g')
+    
+    axarr[i/2,i%2].plot([oyster_dim[i][4]-8,oyster_dim[i][5]-3],[-oyster_dim[i][11],-oyster_dim[i][13]], color='r')
+    axarr[i/2,i%2].plot([(oyster_dim[i][6]+oyster_dim[i][7]-11)/2,(oyster_dim[i][8]+oyster_dim[i][9]-11)/2],[-oyster_dim[i][2],-oyster_dim[i][3]], color='r')
+
+    axarr[i/2,i%2].scatter([oyster_dim[i][6]-8,oyster_dim[i][7]-3,oyster_dim[i][8]-8,oyster_dim[i][9]-3,oyster_dim[i][4]-8,oyster_dim[i][5]-3], [-oyster_dim[i][2],-oyster_dim[i][2],-oyster_dim[i][3],-oyster_dim[i][3],-oyster_dim[i][11],-oyster_dim[i][13]], color='k')
+
+    axarr[i/2,i%2].annotate(str(i+1), [5,-250],[5,-250], color = 'r')
+    axarr[i/2,i%2].hold(False)
+  f.subplots_adjust(hspace=0.01)
+  f.subplots_adjust(wspace=0.01)
+  #pylab.savefig(image_title+'.png')
+  pylab.show()
+  return
 
 def skip_to_image():
   while (True):
@@ -217,7 +257,9 @@ def oystek_start(fname):
     log_to_file()
     num_oysters += 1
     print 'oyster #', num_oysters, ' fetched\n'
+    prepare_scatter_images()
     plot_oyster_images()
+    plot_oyster_images_AiO()
 
   # clean up before exit
   fin.close()
