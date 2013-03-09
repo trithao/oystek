@@ -10,7 +10,6 @@ n_cols = 7*16
 
 # GLOBAL VARS
 oyster_images = [[] for _ in range(n_images)]
-#oyster_dim = [numpy.zeros(n_registers) for _ in range(n_images)]
 oyster_dim = [([0] * n_registers) for _ in range(n_images)]
 oyster_velocity = 0
 oyster_length = 0
@@ -21,7 +20,8 @@ current_line = ''
 num_oysters = 0
 scatter_x = [[] for _ in range(n_images)]
 scatter_y = [[] for _ in range(n_images)]
-
+contour_x = [[] for _ in range(n_images)]
+contour_y = [[] for _ in range(n_images)]
 
 def fetch_image(i):
   global oyster_image
@@ -120,12 +120,26 @@ def fetch_1_oyster():
   
   return True
 
+def is_on_contour(i,j,k):
+  if ((k==0) or (j>oyster_dim[i][3]+5)):
+    return False
+  if ((j>0) and (oyster_images[i][j-1][k] == '#') and
+      (j+2<len(oyster_images[i])) and (oyster_images[i][j+1][k] == '#') and
+      (k>0) and (oyster_images[i][j][k-1] == '#') and
+      (k+2<n_cols) and (oyster_images[i][j][k+1] == '#')):
+    return False
+  return True
 
 def prepare_scatter_images():
   global scatter_x
   global scatter_y
+  global contour_x
+  global contour_y
+  
   scatter_x = [[] for _ in range(n_images)]
   scatter_y = [[] for _ in range(n_images)]
+  contour_x = [[] for _ in range(n_images)]
+  contour_y = [[] for _ in range(n_images)]
   # convert to scatter form  
   for i in range(n_images):
     dots = 0
@@ -135,9 +149,16 @@ def prepare_scatter_images():
       for k in range(len(oyster_images[i][j])-1):
       # for each dot on the line
         if (oyster_images[i][j][k] == '#'):
+          # dot is marked '#', it's part of the oyster
           scatter_x[i].append(k)
           scatter_y[i].append(-j)
           dots += 1
+          # check if it's on contour
+          if (is_on_contour(i,j,k)):
+            contour_x[i].append(k)
+            contour_y[i].append(-j)
+          
+
     print 'image #', i+1, 'dots count= ', dots
   return
 
@@ -150,6 +171,7 @@ def plot_oyster_images():
   for i in range(len(oyster_images)):
     pylab.scatter(scatter_x[i], scatter_y[i], color='lightgrey')
     pylab.hold(True)
+    pylab.scatter(contour_x[i], contour_y[i], color='y')
     pylab.xlabel('mm')
     pylab.ylabel('# lines')
     image_title = 'oyster #'+str(num_oysters)+', image '+str(i+1)
@@ -266,10 +288,13 @@ def oystek_start(fname):
   fout.close()
   print '\ntotal # oysters: ', num_oysters
   return
-  
-##def oystek_start_interactive():
-##  return
 
+
+def contour_filtering():
+  global contour_x
+  global contour_y
+  
+  return
 
 #oystek_start('74mm wooden 100x random orientation.log')
 oystek_start('sample_4.log')
