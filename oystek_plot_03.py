@@ -120,6 +120,7 @@ def fetch_1_oyster():
   
   return True
 
+
 def is_on_contour(i,j,k):
   if ((k==0) or (j>oyster_dim[i][3]+5)):
     return False
@@ -130,11 +131,13 @@ def is_on_contour(i,j,k):
     return False
   return True
 
+
 def prepare_scatter_images():
   global scatter_x
   global scatter_y
   global contour_x
   global contour_y
+  global oyster_dim
   
   scatter_x = [[] for _ in range(n_images)]
   scatter_y = [[] for _ in range(n_images)]
@@ -142,8 +145,8 @@ def prepare_scatter_images():
   contour_y = [[] for _ in range(n_images)]
   # convert to scatter form  
   for i in range(n_images):
-    dots = 0
     # for each image
+    dots = 0
     for j in range(len(oyster_images[i])):
     # for each line
       for k in range(len(oyster_images[i][j])-1):
@@ -157,7 +160,13 @@ def prepare_scatter_images():
           if (is_on_contour(i,j,k)):
             contour_x[i].append(k)
             contour_y[i].append(-j)
-          
+            #check it's Ymin_of_Xmin or Ymin_of_Xmax
+            if ((oyster_dim[i][10] == 0) and (k==(oyster_dim[i][4]-8))):
+              oyster_dim[i][10]=j
+              print 'ymin_of_xmin=', oyster_dim[i][10]
+            if ((oyster_dim[i][12] == 0) and (k==(oyster_dim[i][5]-3))):
+              oyster_dim[i][12]=j
+              print 'ymin_of_xmax=', oyster_dim[i][12]
 
     print 'image #', i+1, 'dots count= ', dots
   return
@@ -181,7 +190,8 @@ def plot_oyster_images():
                      ', Xmin='+str(int(oyster_dim[i][4]-8))+', Xmax='+str(int(oyster_dim[i][5]-3))+
                      ',\nXmin_o_Ymin='+str(int(oyster_dim[i][6]-8))+', Xmax_o_Ymin='+str(int(oyster_dim[i][7]-3))+
                      ', Xmin_o_Ymax='+str(int(oyster_dim[i][8]-8))+', Xmax_o_Ymax='+str(int(oyster_dim[i][9]-3))+
-                     ',\nYmax_o_Xmin='+str(int(oyster_dim[i][11]))+', Ymax_o_Xmax='+str(int(oyster_dim[i][13]))+
+                     ',\nYmin_o_Xmin='+str(int(oyster_dim[i][10]))+', Ymax_o_Xmin='+str(int(oyster_dim[i][11]))+
+                     ', Ymin_o_Xmax='+str(int(oyster_dim[i][12]))+', Ymax_o_Xmax='+str(int(oyster_dim[i][13]))+
                      ',\ndelay='+str(int(oyster_velocity))+', Grade='+str(int(oyster_grade))+', Length='+str(int(oyster_length))
                     )
     pylab.annotate(annotate_text, [5,-250],[5,-250])
@@ -198,7 +208,7 @@ def plot_oyster_images():
     pylab.plot([(oyster_dim[i][6]+oyster_dim[i][7]-11)/2,(oyster_dim[i][8]+oyster_dim[i][9]-11)/2],[-oyster_dim[i][2],-oyster_dim[i][3]], color='r')
 
     pylab.scatter([oyster_dim[i][6]-8,oyster_dim[i][7]-3,oyster_dim[i][8]-8,oyster_dim[i][9]-3,oyster_dim[i][4]-8,oyster_dim[i][5]-3], [-oyster_dim[i][2],-oyster_dim[i][2],-oyster_dim[i][3],-oyster_dim[i][3],-oyster_dim[i][11],-oyster_dim[i][13]], color='k')
-    
+    pylab.scatter([oyster_dim[i][4]-8,oyster_dim[i][5]-3],[-oyster_dim[i][10],-oyster_dim[i][12]], color='cyan')
     pylab.hold(False)
     #pylab.savefig(image_title+'.png')
     pylab.show()
@@ -234,7 +244,8 @@ def plot_oyster_images_AiO():
     axarr[i/2,i%2].plot([(oyster_dim[i][6]+oyster_dim[i][7]-11)/2,(oyster_dim[i][8]+oyster_dim[i][9]-11)/2],[-oyster_dim[i][2],-oyster_dim[i][3]], color='r')
 
     axarr[i/2,i%2].scatter([oyster_dim[i][6]-8,oyster_dim[i][7]-3,oyster_dim[i][8]-8,oyster_dim[i][9]-3,oyster_dim[i][4]-8,oyster_dim[i][5]-3], [-oyster_dim[i][2],-oyster_dim[i][2],-oyster_dim[i][3],-oyster_dim[i][3],-oyster_dim[i][11],-oyster_dim[i][13]], color='k')
-
+    axarr[i/2,i%2].scatter([oyster_dim[i][4]-8,oyster_dim[i][5]-3],[-oyster_dim[i][10],-oyster_dim[i][12]], color='cyan')
+    
     axarr[i/2,i%2].annotate(str(i+1), [5,-250],[5,-250], color = 'r')
     axarr[i/2,i%2].hold(False)
   f.subplots_adjust(hspace=0.01)
@@ -242,6 +253,7 @@ def plot_oyster_images_AiO():
   #pylab.savefig(image_title+'.png')
   pylab.show()
   return
+
 
 def skip_to_image():
   while (True):
@@ -297,5 +309,5 @@ def contour_filtering():
   return
 
 #oystek_start('74mm wooden 100x random orientation.log')
-oystek_start('sample_4.log')
+oystek_start('sample_5.log')
 
