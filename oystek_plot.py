@@ -9,10 +9,13 @@ import re
 num_plots = 2       # first n oysters with individual view plots
 num_plots_AiO = 100 # first n oyster with 4-in-1 view plot
 
-h1 = 0.0152 # m, distance between to photo-diodes
+h1 = 0.0153 # m, distance between to photo-diodes
 g = 9.8     # m/s2, gravitational constant
-d = 0.0025  # m, distance between CCD and bottom photo-diode
-line_scan = 0.000255 # seconds, length in time of 1 CCD scanline
+d = 0.0025  # m, distance between CCD and bottom photo-diode. CCD above the bottom photo-diode.
+scan_steps = 115
+step_width = 2.2
+line_scan = scan_steps * step_width * 10**(-6)  # seconds, length in time of 1 CCD scanline
+#line_scan = 0.000253 # = 115 * 2.2
 
 Xmin_correction = 8
 Xmax_correction = 3
@@ -46,7 +49,7 @@ MinY_of_MaxX = 7
 # GLOBAL VARIABLES:
 #   oyster_images, oyster_features, oyster_velocity, oyster_length, oyster_grade, \
 #   fin, fout, current_line, num_oysters, scatter_x, scatter_y, contour_x, contour_y, \
-#   y_adjust, maxDiagonal, len_nlines_ratio, dots_count
+#   adjust, maxDiagonal, len_nlines_ratio, dots_count
 #===========================================
 #===========================================
 
@@ -55,7 +58,7 @@ MinY_of_MaxX = 7
 def oystek_reset(fname):
   global oyster_images, oyster_features, oyster_velocity, oyster_length, oyster_grade, \
          fin, fout, current_line, num_oysters, scatter_x, scatter_y, contour_x, contour_y, \
-         y_adjust, maxDiagonal, len_nlines_ratio, dots_count
+         adjust, maxDiagonal, len_nlines_ratio, dots_count
 
   oyster_images = [[] for _ in range(n_images)]
   oyster_features = [([0] * n_registers) for _ in range(n_images)]
@@ -73,7 +76,7 @@ def oystek_reset(fname):
   maxDiagonal = [[] for _ in range(n_images)]
   len_nlines_ratio = [0] * n_images
   dots_count =  [0] * n_images
-  y_adjust = [([0] * 8) for _ in range(n_images)]
+  adjust = [([0] * 8) for _ in range(n_images)]
   return
 
 
@@ -187,7 +190,7 @@ def is_on_contour(i,j,k):
 # this is called each time an oyster is fetched
 def prepare_scatter_images():
   global scatter_x, scatter_y, contour_x, contour_y, dots_count,\
-         oyster_features, y_adjust, maxDiagonal, len_nlines_ratio
+         oyster_features, adjust, maxDiagonal, len_nlines_ratio
   
   scatter_x = [[] for _ in range(n_images)]
   scatter_y = [[] for _ in range(n_images)]
@@ -197,14 +200,14 @@ def prepare_scatter_images():
   for i in range(n_images):
     # for each image
     dots_count[i] = 0
-    y_adjust[i][MinY] = 0
-    y_adjust[i][MaxY] = 0
-    y_adjust[i][MinX_of_MinY] = 0
-    y_adjust[i][MaxX_of_MinY] = 0
-    y_adjust[i][MinX_of_MaxY] = 0
-    y_adjust[i][MaxX_of_MaxY] = 0
-    y_adjust[i][MinY_of_MinX] = 0
-    y_adjust[i][MinY_of_MaxX] = 0
+    adjust[i][MinY] = 0
+    adjust[i][MaxY] = 0
+    adjust[i][MinX_of_MinY] = 0
+    adjust[i][MaxX_of_MinY] = 0
+    adjust[i][MinX_of_MaxY] = 0
+    adjust[i][MaxX_of_MaxY] = 0
+    adjust[i][MinY_of_MinX] = 0
+    adjust[i][MinY_of_MaxX] = 0
     
     for j in range(len(oyster_images[i])):
     # for each line
@@ -220,23 +223,23 @@ def prepare_scatter_images():
           if (is_on_contour(i,j,k)):
             contour_x[i].append(k)
             contour_y[i].append(-j)
-            if (y_adjust[i][MinY] == 0):  # MinY detected
-              y_adjust[i][MinY] = j
-              if (y_adjust[i][MinX_of_MinY] == 0):
-                y_adjust[i][MinX_of_MinY] = k
-            if (j == y_adjust[i][MinY]):
-              y_adjust[i][MaxX_of_MinY] = k
+            if (adjust[i][MinY] == 0):  # MinY detected
+              adjust[i][MinY] = j
+              if (adjust[i][MinX_of_MinY] == 0):
+                adjust[i][MinX_of_MinY] = k
+            if (j == adjust[i][MinY]):
+              adjust[i][MaxX_of_MinY] = k
             # update MaxY
-            y_adjust[i][MaxY] = j
-            y_adjust[i][MaxX_of_MaxY] = k
+            adjust[i][MaxY] = j
+            adjust[i][MaxX_of_MaxY] = k
             if (first_dot == False):
-              y_adjust[i][MinX_of_MaxY] = k
+              adjust[i][MinX_of_MaxY] = k
               first_dot = True
             #check it's Ymin_of_Xmin or Ymin_of_Xmax
-            if ((y_adjust[i][MinY_of_MinX] == 0) and (k==(oyster_features[i][4]-Xmin_correction))):
-              y_adjust[i][MinY_of_MinX]=j
-            if ((y_adjust[i][MinY_of_MaxX] == 0) and (k==(oyster_features[i][5]-Xmax_correction))):
-              y_adjust[i][MinY_of_MaxX]=j
+            if ((adjust[i][MinY_of_MinX] == 0) and (k==(oyster_features[i][4]-Xmin_correction))):
+              adjust[i][MinY_of_MinX]=j
+            if ((adjust[i][MinY_of_MaxX] == 0) and (k==(oyster_features[i][5]-Xmax_correction))):
+              adjust[i][MinY_of_MaxX]=j
 
     len_nlines_ratio[i] = length_to_numlines_ratio(i)
     maxDiagonal[i] = find_max_diagonal(i)
@@ -280,9 +283,9 @@ def plot_oyster_images():
     pl.plot([maxDiagonal[i][0],maxDiagonal[i][2]],[-maxDiagonal[i][1],-maxDiagonal[i][3]], color='r')
 
     pl.scatter([oyster_features[i][6]-Xmin_correction,oyster_features[i][7]-Xmax_correction,oyster_features[i][8]-Xmin_correction,oyster_features[i][9]-Xmax_correction,oyster_features[i][4]-Xmin_correction,oyster_features[i][5]-Xmax_correction], [-oyster_features[i][2],-oyster_features[i][2],-oyster_features[i][3],-oyster_features[i][3],-oyster_features[i][11],-oyster_features[i][13]], color='k')
-    pl.scatter([oyster_features[i][4]-Xmin_correction,oyster_features[i][5]-Xmax_correction],[-y_adjust[i][MinY_of_MinX],-y_adjust[i][MinY_of_MaxX]], color='r')
+    pl.scatter([oyster_features[i][4]-Xmin_correction,oyster_features[i][5]-Xmax_correction],[-adjust[i][MinY_of_MinX],-adjust[i][MinY_of_MaxX]], color='r')
 
-    pl.scatter([y_adjust[i][MinX_of_MinY], y_adjust[i][MaxX_of_MinY], y_adjust[i][MinX_of_MaxY], y_adjust[i][MaxX_of_MaxY]], [-y_adjust[i][MinY], -y_adjust[i][MinY], -y_adjust[i][MaxY], -y_adjust[i][MaxY]], color='r')
+    pl.scatter([adjust[i][MinX_of_MinY], adjust[i][MaxX_of_MinY], adjust[i][MinX_of_MaxY], adjust[i][MaxX_of_MaxY]], [-adjust[i][MinY], -adjust[i][MinY], -adjust[i][MaxY], -adjust[i][MaxY]], color='r')
     
     pl.hold(False)
     #pl.savefig(image_title+'.png')
@@ -322,8 +325,8 @@ def plot_oyster_images_AiO():
     axarr[i/2,i%2].plot([maxDiagonal[i][0],maxDiagonal[i][2]],[-maxDiagonal[i][1],-maxDiagonal[i][3]], color='r')
 
     axarr[i/2,i%2].scatter([oyster_features[i][6]-Xmin_correction,oyster_features[i][7]-Xmax_correction,oyster_features[i][8]-Xmin_correction,oyster_features[i][9]-Xmax_correction,oyster_features[i][4]-Xmin_correction,oyster_features[i][5]-Xmax_correction], [-oyster_features[i][2],-oyster_features[i][2],-oyster_features[i][3],-oyster_features[i][3],-oyster_features[i][11],-oyster_features[i][13]], color='k')
-    axarr[i/2,i%2].scatter([oyster_features[i][4]-Xmin_correction,oyster_features[i][5]-Xmax_correction],[-y_adjust[i][MinY_of_MinX],-y_adjust[i][MinY_of_MaxX]], color='r')
-    axarr[i/2,i%2].scatter([y_adjust[i][MinX_of_MinY], y_adjust[i][MaxX_of_MinY], y_adjust[i][MinX_of_MaxY], y_adjust[i][MaxX_of_MaxY]], [-y_adjust[i][MinY], -y_adjust[i][MinY], -y_adjust[i][MaxY], -y_adjust[i][MaxY]], color='r')
+    axarr[i/2,i%2].scatter([oyster_features[i][4]-Xmin_correction,oyster_features[i][5]-Xmax_correction],[-adjust[i][MinY_of_MinX],-adjust[i][MinY_of_MaxX]], color='r')
+    axarr[i/2,i%2].scatter([adjust[i][MinX_of_MinY], adjust[i][MaxX_of_MinY], adjust[i][MinX_of_MaxY], adjust[i][MaxX_of_MaxY]], [-adjust[i][MinY], -adjust[i][MinY], -adjust[i][MaxY], -adjust[i][MaxY]], color='r')
 
     axarr[i/2,i%2].annotate(str(i+1), [5,-250],[5,-250], color = 'r')
     axarr[i/2,i%2].hold(False)
@@ -350,7 +353,7 @@ def log_to_file():
     for reg in oyster_features[i]:
       fout.write(str(int(reg))+'\t')
     fout.write(str(oyster_velocity)+'\t'+str(oyster_grade)+'\t'+str(int(oyster_length)))
-    for reg in y_adjust[i]:
+    for reg in adjust[i]:
       fout.write('\t'+str(reg))
     for val in maxDiagonal[i]:
       fout.write('\t'+str(val))
@@ -365,28 +368,28 @@ def length_to_numlines_ratio(i):
   h2 = h1 - d
   v2 = (v0**2 + 2*g*h2)**0.5
   t2 = (v2 - v0) / g
-  t3 = t2 + (y_adjust[i][MaxY]-y_adjust[i][MinY]) * line_scan
+  t3 = t2 + (adjust[i][MaxY]-adjust[i][MinY]) * line_scan
   h3 = v0 * t3 + 0.5*g*t3**2
   h23 = (h3-h2)*1000 # mm
-  return h23 / (y_adjust[i][MaxY]-y_adjust[i][MinY]+1)
+  return h23 / (adjust[i][MaxY]-adjust[i][MinY]+1)
 
 
 #distance between 2 points (x1,y1) and (x2,y2)
 def distance(x1,y1,x2,y2):
-  return ((x1-x2)**2 + (y1-y2)**2)**0.5
+  return ((abs(x1-x2)+1)**2 + (abs(y1-y2)+1)**2)**0.5
 
 
 def find_max_diagonal(i):
   dmax = 0
   pairs = [ \
-    [y_adjust[i][MinX_of_MaxY], y_adjust[i][MaxY], oyster_features[i][MaxX]-Xmax_correction, y_adjust[i][MinY_of_MaxX]], \
-    [oyster_features[i][MinX]-Xmin_correction, oyster_features[i][MaxY_of_MinX], y_adjust[i][MaxX_of_MinY], y_adjust[i][MinY]],\
-    [oyster_features[i][MinX]-Xmin_correction, oyster_features[i][MaxY_of_MinX], y_adjust[i][MaxX_of_MinY], y_adjust[i][MinY]],\
-    [y_adjust[i][MinX_of_MinY], y_adjust[i][MinY], oyster_features[i][MaxX]-Xmax_correction, oyster_features[i][MaxY_of_MaxX]],\
-    [y_adjust[i][MinX_of_MinY], y_adjust[i][MinY],y_adjust[i][MaxX_of_MaxY], y_adjust[i][MaxY]],\
-    [y_adjust[i][MaxX_of_MinY], y_adjust[i][MinY],y_adjust[i][MinX_of_MaxY], y_adjust[i][MaxY]],\
-    [oyster_features[i][MinX]-Xmin_correction, oyster_features[i][MaxY_of_MinX], oyster_features[i][MaxX]-Xmax_correction, y_adjust[i][MinY_of_MaxX]],\
-    [oyster_features[i][MinX]-Xmin_correction, y_adjust[i][MinY_of_MinX], oyster_features[i][MaxX]-Xmax_correction, oyster_features[i][MaxY_of_MaxX]]\
+    [adjust[i][MinX_of_MaxY], adjust[i][MaxY], oyster_features[i][MaxX]-Xmax_correction, adjust[i][MinY_of_MaxX]], \
+    [oyster_features[i][MinX]-Xmin_correction, oyster_features[i][MaxY_of_MinX], adjust[i][MaxX_of_MinY], adjust[i][MinY]],\
+    [oyster_features[i][MinX]-Xmin_correction, oyster_features[i][MaxY_of_MinX], adjust[i][MaxX_of_MinY], adjust[i][MinY]],\
+    [adjust[i][MinX_of_MinY], adjust[i][MinY], oyster_features[i][MaxX]-Xmax_correction, oyster_features[i][MaxY_of_MaxX]],\
+    [adjust[i][MinX_of_MinY], adjust[i][MinY],adjust[i][MaxX_of_MaxY], adjust[i][MaxY]],\
+    [adjust[i][MaxX_of_MinY], adjust[i][MinY],adjust[i][MinX_of_MaxY], adjust[i][MaxY]],\
+    [oyster_features[i][MinX]-Xmin_correction, oyster_features[i][MaxY_of_MinX], oyster_features[i][MaxX]-Xmax_correction, adjust[i][MinY_of_MaxX]],\
+    [oyster_features[i][MinX]-Xmin_correction, adjust[i][MinY_of_MinX], oyster_features[i][MaxX]-Xmax_correction, oyster_features[i][MaxY_of_MaxX]]\
   ]
   for [x1,y1,x2,y2] in pairs:
     dtemp = distance(x1,y1*len_nlines_ratio[i], x2,y2*len_nlines_ratio[i])
@@ -408,8 +411,10 @@ def print_measurement():
   for i in range(n_images):
     print 'View #%d:'%(i+1)
     print '  ', oyster_features[i]
-    print '   dots count=%d'%dots_count[i], ', num_lines=%d'%(y_adjust[i][MaxY] - y_adjust[i][MinY] + 1)
-    print '  ', y_adjust[i]
+    print '   dots count=%d'%dots_count[i], \
+          ', num_lines=%d'%(adjust[i][MaxY] - adjust[i][MinY] + 1), \
+          ', num_cols=%d'%((oyster_features[i][MaxX]-Xmax_correction) - (oyster_features[i][MinX]-Xmin_correction) + 1)
+    print '  ', adjust[i]
     print '   maxDiag=', maxDiagonal[i][0:4], ', length/nlines=%.4f'%len_nlines_ratio[i], ', length=%.1f'%maxDiagonal[i][4]
   return
 
@@ -447,4 +452,4 @@ def oystek_start(fname):
 #>>> oystek_start('sample.log')
 #>>> oystek_start('sample_5.log')
 #oystek_start('32mm X30 ball hand drop.log')
-oystek_start('43mm golf ball 100x.log')
+oystek_start('73.0mm Wooden Oyster.log')
